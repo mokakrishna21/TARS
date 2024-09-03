@@ -1,6 +1,8 @@
 ## TARS ChatBot
 
 TARS is a conversational chatbot built with Streamlit and Groq. Inspired by the TARS robot from Interstellar, this chatbot provides a friendly and engaging experience for users.
+https://tars-the-quantum-bot.streamlit.app/
+
 
 ## Features
 
