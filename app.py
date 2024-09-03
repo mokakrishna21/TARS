@@ -6,7 +6,7 @@ from groq import Groq
 
 dotenv.load_dotenv()
 
-st.set_page_config(page_icon="💬", layout="wide", page_title="TARS ChatBot")
+st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS")
 
 def display_image(image_path: str):
     """Displays an image centered on the page."""
