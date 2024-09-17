@@ -46,7 +46,7 @@ def initialize_session_state():
         st.session_state.history = []
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am here to help with document analysis. Please upload your documents and ask me questions."})
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am TARS, a bootleg version of the TARS from Interstellar. How can I assist you today?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -104,7 +104,7 @@ if uploaded_files:
             retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
             memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         )
-        st.success("Documents processed successfully!")
+        st.success("Documents uploaded successfully!")
     except Exception as e:
         st.error(f"Error creating vector store: {e}")
         st.stop()
