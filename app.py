@@ -1,12 +1,9 @@
 import os
 import sys
 import tempfile
-import pandas as pd
-import matplotlib.pyplot as plt
 import streamlit as st
+import pandas as pd
 from io import StringIO
-from dotenv import load_dotenv
-from streamlit_chat import message
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
@@ -14,7 +11,7 @@ from langchain_community.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
-from fbprophet import Prophet
+import dotenv
 
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -23,8 +20,7 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-# Load environment variables
-load_dotenv()
+dotenv.load_dotenv()
 
 # Initialize Groq API Client
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -50,9 +46,8 @@ def initialize_session_state():
     if "history" not in st.session_state:
         st.session_state.history = []
     if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm TARS (Tactical Assistance & Response System). What can I assist you with today?"}
-        ]
+        st.session_state.messages = []
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -82,7 +77,12 @@ if uploaded_files:
         elif file_extension == ".txt":
             loader = TextLoader(temp_file_path)
         elif file_extension == ".csv":
-            st.session_state.dataframe = pd.read_csv(temp_file_path)
+            # Read CSV into DataFrame
+            dataframe = pd.read_csv(temp_file_path)
+            st.session_state.dataframe = dataframe
+            st.write(dataframe)
+            continue  # Skip to the next file
+
         else:
             st.warning(f"Unsupported file type: {file_extension}")
             continue
@@ -125,27 +125,62 @@ def reset_session_state():
         del st.session_state[key]
     initialize_session_state()
 
-# Function to perform forecasting
-def perform_forecasting(df):
-    df = df.rename(columns={df.columns[0]: 'ds', df.columns[1]: 'y'})
-    model = Prophet()
-    model.fit(df)
-    future = model.make_future_dataframe(periods=30)
-    forecast = model.predict(future)
-    fig = model.plot(forecast)
-    return fig
+# Function to handle CSV queries
+def handle_csv_query(query, dataframe):
+    query = query.lower()
+    
+    if "summary" in query:
+        return dataframe.describe().to_string()
+    
+    elif "head" in query:
+        return dataframe.head().to_string()
+    
+    elif "tail" in query:
+        return dataframe.tail().to_string()
+    
+    elif "mean" in query:
+        column_name = extract_column_name(query)
+        if column_name in dataframe.columns:
+            return f"Mean of {column_name}: {dataframe[column_name].mean()}"
+        else:
+            return "Column not found."
+    
+    elif "median" in query:
+        column_name = extract_column_name(query)
+        if column_name in dataframe.columns:
+            return f"Median of {column_name}: {dataframe[column_name].median()}"
+        else:
+            return "Column not found."
+    
+    elif "correlation" in query:
+        columns = extract_columns_names(query)
+        if all(col in dataframe.columns for col in columns):
+            return dataframe[columns].corr().to_string()
+        else:
+            return "One or more columns not found."
+    
+    elif "plot" in query:
+        column_name = extract_column_name(query)
+        if column_name in dataframe.columns:
+            st.line_chart(dataframe[column_name])
+            return f"Plot of {column_name} displayed."
+        else:
+            return "Column not found."
+    
+    else:
+        return "I can only provide summary statistics, basic plots, or column-wise analysis."
 
-# Function for basic data analysis
-def perform_data_analysis(df):
-    st.write("### Basic Statistics")
-    st.write(df.describe())
+def extract_column_name(query):
+    keywords = ["mean", "median", "plot"]
+    for keyword in keywords:
+        if keyword in query:
+            return query.split(keyword)[-1].strip()
+    return ""
 
-    st.write("### Data Sample")
-    st.write(df.head())
-
-    st.write("### Data Visualization")
-    st.write("#### Line Chart")
-    st.line_chart(df)
+def extract_columns_names(query):
+    if "correlation" in query:
+        return [col.strip() for col in query.split("correlation")[1].split(",")]
+    return []
 
 # Display chat history and handle inputs
 def display_chat_history():
@@ -162,10 +197,11 @@ def display_chat_history():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
-        if "name" in prompt.lower() or "who are you" in prompt.lower() or "what are you" in prompt.lower():
-            response = "Hello! I'm TARS (Tactical Assistance & Response System). What can I assist you with today?"
-        elif st.session_state.chain and st.session_state.dataframe is not None:
+        # Retrieve and generate response
+        if st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
+        elif st.session_state.dataframe is not None:
+            response = handle_csv_query(prompt, st.session_state.dataframe)
         else:
             try:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
@@ -175,21 +211,6 @@ def display_chat_history():
 
         st.chat_message("assistant", avatar="🤖").markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
-
-        # Handle data analysis request
-        if "analyze" in prompt.lower() and st.session_state.dataframe is not None:
-            try:
-                perform_data_analysis(st.session_state.dataframe)
-            except Exception as e:
-                st.error(f"Error performing data analysis: {str(e)}")
-
-        # Handle forecasting request
-        if "forecast" in prompt.lower() and st.session_state.dataframe is not None:
-            try:
-                fig = perform_forecasting(st.session_state.dataframe)
-                st.pyplot(fig)
-            except Exception as e:
-                st.error(f"Error performing forecasting: {str(e)}")
 
 # Show chat and process inputs
 display_chat_history()
