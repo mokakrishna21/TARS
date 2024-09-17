@@ -51,6 +51,8 @@ def initialize_session_state():
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
         st.session_state.past = ["Hey! 👋"]
+    if "chain" not in st.session_state:
+        st.session_state.chain = None
 
 initialize_session_state()
 
@@ -94,13 +96,15 @@ if uploaded_files:
     embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
     try:
-        vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding, persist_directory="chroma_store")
-        chain = ConversationalRetrievalChain.from_llm(
+        # Use in-memory Chroma database instead of persistent storage
+        vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
+        st.session_state.chain = ConversationalRetrievalChain.from_llm(
             llm=client,
             chain_type="stuff",
             retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
             memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         )
+        st.success("Documents processed successfully!")
     except Exception as e:
         st.error(f"Error creating vector store: {e}")
         st.stop()
@@ -112,7 +116,7 @@ def reset_session_state():
     initialize_session_state()
 
 # Display chat history and handle inputs
-def display_chat_history(chain=None):
+def display_chat_history():
     col1, _, _ = st.columns([1, 0.1, 0.1])
     with col1:
         st.button("New Chat", key="reset_chat_button_2", on_click=reset_session_state)
@@ -127,8 +131,8 @@ def display_chat_history(chain=None):
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
         # Retrieve and generate response
-        if chain and uploaded_files:
-            response = chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
+        if st.session_state.chain and uploaded_files:
+            response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
             try:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
@@ -140,7 +144,4 @@ def display_chat_history(chain=None):
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 # Show chat and process inputs
-if uploaded_files:
-    display_chat_history(chain)
-else:
-    display_chat_history()
+display_chat_history()
