@@ -4,6 +4,7 @@ import tempfile
 import streamlit as st
 import pandas as pd
 from io import StringIO
+from streamlit_chat import message
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
@@ -31,7 +32,7 @@ client = ChatGroq(
 )
 
 # UI Configurations
-st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS with RAG")
+st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS")
 
 # Display Image
 def display_image(image_path: str):
@@ -54,35 +55,39 @@ def initialize_session_state():
         st.session_state.past = ["Hey! 👋"]
     if "chain" not in st.session_state:
         st.session_state.chain = None
-    if "dataframe" not in st.session_state:
-        st.session_state.dataframe = None
+    if "csv_data" not in st.session_state:
+        st.session_state.csv_data = None
 
 initialize_session_state()
 
-# File uploader for documents
-uploaded_files = st.sidebar.file_uploader("Upload Documents", accept_multiple_files=True, key="file_uploader")
+# File uploader for all document types including CSV
+uploaded_files = st.sidebar.file_uploader("Upload Documents (PDF, DOCX, TXT, CSV)", accept_multiple_files=True, type=["pdf", "docx", "doc", "txt", "csv"], key="file_uploader")
 
+# Process uploaded files
 if uploaded_files:
     text = []
     for file in uploaded_files:
         file_extension = os.path.splitext(file.name)[1]
+        
+        # Handling CSV files separately
+        if file_extension == ".csv":
+            dataframe = pd.read_csv(file)
+            st.write(f"Uploaded CSV file: {file.name}")
+            st.write(dataframe)
+            st.session_state.csv_data = dataframe  # Store CSV data in session state
+            continue  # Skip to next file after processing CSV
+        
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_file.write(file.read())
             temp_file_path = temp_file.name
 
+        # Load other file types
         if file_extension == ".pdf":
             loader = PyPDFLoader(temp_file_path)
         elif file_extension in [".docx", ".doc"]:
             loader = Docx2txtLoader(temp_file_path)
         elif file_extension == ".txt":
             loader = TextLoader(temp_file_path)
-        elif file_extension == ".csv":
-            # Read CSV into DataFrame
-            dataframe = pd.read_csv(temp_file_path)
-            st.session_state.dataframe = dataframe
-            st.write(dataframe)
-            continue  # Skip to the next file
-
         else:
             st.warning(f"Unsupported file type: {file_extension}")
             continue
@@ -91,33 +96,35 @@ if uploaded_files:
             text.extend(loader.load())
             os.remove(temp_file_path)
 
-    text_splitter = CharacterTextSplitter(
-        separator="\n\n",
-        chunk_size=1024,
-        chunk_overlap=256,
-        length_function=len
-    )
-    text_chunks = text_splitter.split_documents(text)
-    
-    if not text_chunks:
-        st.error("No valid text chunks found. Please check your documents.")
-        st.stop()
-    
-    embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-    try:
-        # Use in-memory Chroma database instead of persistent storage
-        vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
-        st.session_state.chain = ConversationalRetrievalChain.from_llm(
-            llm=client,
-            chain_type="stuff",
-            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
-            memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    # If there are text files to process
+    if text:
+        text_splitter = CharacterTextSplitter(
+            separator="\n\n",
+            chunk_size=1024,
+            chunk_overlap=256,
+            length_function=len
         )
-        st.success("Documents uploaded successfully!")
-    except Exception as e:
-        st.error(f"Error creating vector store: {e}")
-        st.stop()
+        text_chunks = text_splitter.split_documents(text)
+        
+        if not text_chunks:
+            st.error("No valid text chunks found. Please check your documents.")
+            st.stop()
+
+        embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+        try:
+            # Use in-memory Chroma database instead of persistent storage
+            vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
+            st.session_state.chain = ConversationalRetrievalChain.from_llm(
+                llm=client,
+                chain_type="stuff",
+                retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
+                memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+            )
+            st.success("Documents uploaded successfully!")
+        except Exception as e:
+            st.error(f"Error creating vector store: {e}")
+            st.stop()
 
 # Function to reset the session state
 def reset_session_state():
@@ -125,62 +132,33 @@ def reset_session_state():
         del st.session_state[key]
     initialize_session_state()
 
-# Function to handle CSV queries
-def handle_csv_query(query, dataframe):
-    query = query.lower()
+# Check if the user is asking for the bot's identity
+def check_identity_question(prompt):
+    identity_keywords = ["what is your name", "who are you", "what are you"]
+    return any(keyword in prompt.lower() for keyword in identity_keywords)
+
+# Handle queries related to CSV data
+def handle_csv_query(query):
+    if "csv_data" not in st.session_state:
+        return "No CSV file has been uploaded."
     
-    if "summary" in query:
-        return dataframe.describe().to_string()
-    
-    elif "head" in query:
-        return dataframe.head().to_string()
-    
-    elif "tail" in query:
-        return dataframe.tail().to_string()
-    
-    elif "mean" in query:
-        column_name = extract_column_name(query)
-        if column_name in dataframe.columns:
-            return f"Mean of {column_name}: {dataframe[column_name].mean()}"
-        else:
-            return "Column not found."
-    
-    elif "median" in query:
-        column_name = extract_column_name(query)
-        if column_name in dataframe.columns:
-            return f"Median of {column_name}: {dataframe[column_name].median()}"
-        else:
-            return "Column not found."
-    
-    elif "correlation" in query:
-        columns = extract_columns_names(query)
-        if all(col in dataframe.columns for col in columns):
-            return dataframe[columns].corr().to_string()
-        else:
-            return "One or more columns not found."
-    
-    elif "plot" in query:
-        column_name = extract_column_name(query)
-        if column_name in dataframe.columns:
-            st.line_chart(dataframe[column_name])
-            return f"Plot of {column_name} displayed."
-        else:
-            return "Column not found."
-    
+    dataframe = st.session_state.csv_data
+
+    # Basic query handling, expand as needed
+    if "summary" in query.lower():
+        summary = dataframe.describe(include='all').to_string()
+        return f"Summary Statistics:\n{summary}"
+    elif "head" in query.lower():
+        head = dataframe.head().to_string()
+        return f"First few rows:\n{head}"
+    elif "columns" in query.lower():
+        columns = dataframe.columns.to_list()
+        return f"Columns:\n{', '.join(columns)}"
+    elif "shape" in query.lower():
+        shape = dataframe.shape
+        return f"Shape of the data: {shape[0]} rows and {shape[1]} columns."
     else:
-        return "I can only provide summary statistics, basic plots, or column-wise analysis."
-
-def extract_column_name(query):
-    keywords = ["mean", "median", "plot"]
-    for keyword in keywords:
-        if keyword in query:
-            return query.split(keyword)[-1].strip()
-    return ""
-
-def extract_columns_names(query):
-    if "correlation" in query:
-        return [col.strip() for col in query.split("correlation")[1].split(",")]
-    return []
+        return "Sorry, I didn't understand that query related to the CSV data."
 
 # Display chat history and handle inputs
 def display_chat_history():
@@ -197,11 +175,13 @@ def display_chat_history():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
-        # Retrieve and generate response
-        if st.session_state.chain and uploaded_files:
+        # Check if the prompt is related to the CSV data
+        if "csv_data" in st.session_state:
+            response = handle_csv_query(prompt)
+        elif check_identity_question(prompt):
+            response = "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"
+        elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
-        elif st.session_state.dataframe is not None:
-            response = handle_csv_query(prompt, st.session_state.dataframe)
         else:
             try:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
