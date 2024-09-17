@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import streamlit as st
 from streamlit_chat import message
@@ -14,6 +15,10 @@ import dotenv
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
+# Use pysqlite3 as a drop-in replacement for sqlite3
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 dotenv.load_dotenv()
 
 # Initialize Groq API Client
@@ -25,7 +30,7 @@ client = ChatGroq(
 )
 
 # UI Configurations
-st.set_page_config(page_icon="🌌", layout="wide", page_title="Document Relationship Checker")
+st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS with RAG")
 
 # Display Image
 def display_image(image_path: str):
