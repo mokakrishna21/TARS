@@ -19,4 +19,4 @@ bs4
 openai
 llamaapi
 protobuf==3.20.0
-pysqlite3
+pysqlite3-binary==0.5.3
