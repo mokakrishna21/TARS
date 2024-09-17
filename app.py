@@ -2,7 +2,6 @@ import os
 import sys
 import tempfile
 import streamlit as st
-from streamlit_chat import message
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
@@ -46,7 +45,7 @@ def initialize_session_state():
         st.session_state.history = []
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"})
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -131,7 +130,9 @@ def display_chat_history():
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
         # Retrieve and generate response
-        if st.session_state.chain and uploaded_files:
+        if "what is your name" in prompt.lower() or "who are you" in prompt.lower() or "what are you" in prompt.lower():
+            response = "Hello! I'm TARS (Tactical Assistance & Response System) a bootleg version of the TARS from Interstellar. How can I help you?"
+        elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
             try:
