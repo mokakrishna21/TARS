@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import random
 import streamlit as st
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -10,7 +11,6 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
 import dotenv
-import random
 
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -40,17 +40,42 @@ def display_image(image_path: str):
 
 display_image("TARS.png")
 
+# Define a list of unique greetings
+greetings = [
+    "Howdy, space adventurer! I’m TARS (Tactical Assistance & Response System), a charmingly quirky version of the TARS from *Interstellar*. Ready for a wild ride through the cosmos? How can I help you today?",
+    "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
+    "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
+    "Hello, cosmic explorer! I’m TARS (Tactical Assistance & Response System), a bootleg version of the TARS from *Interstellar* with extra giggles and geekiness. What’s on your mind?",
+    "Well, hi there! I’m TARS (Tactical Assistance & Response System), sort of like the TARS from *Interstellar*, but with a twist of techie humor and a sprinkle of goofiness. How can I assist you?",
+    "Greetings, interstellar buddy! I’m TARS (Tactical Assistance & Response System), your friendly neighborhood TARS with a penchant for geeky jokes and cosmic puns. What’s your query?",
+    "Hiya, space wanderer! I’m TARS (Tactical Assistance & Response System), a playful imitation of the TARS from *Interstellar*, with a side of cosmic comedy. What can I do for you?",
+    "Hey, space cadet! I’m TARS (Tactical Assistance & Response System), a light-hearted take on the TARS from *Interstellar*, full of goofy humor and starry-eyed charm. What’s up?",
+    "Well, howdy there! I’m TARS (Tactical Assistance & Response System), kind of like the TARS from *Interstellar*, but with a quirky sense of humor and lots of space jokes. What’s on your mind?",
+    "Hey there, cosmic explorer! I’m TARS (Tactical Assistance & Response System), your delightfully goofy version of the TARS from *Interstellar*, with plenty of nerdy fun. How can I assist you today?"
+]
+
 # Function to generate a unique greeting
 def generate_greeting():
-    prompt = ("Generate a funny, nerdy, and unique greeting for a chatbot named TARS. "
-              "It should be playful, comical, and have a space-themed twist. Examples include:\n"
-              "- Howdy, star ranger! I’m TARS, your goofy guide through the galaxy! Ready for some cosmic fun?\n"
-              "- Greetings, Earthling! TARS here, your playful sidekick with a knack for galactic giggles! What’s up?\n"
-              "- Hello, cosmic adventurer! TARS at your service, with more quirky charm than a space hamster! How can I assist you?\n"
-              "Make sure the greeting is different from previous ones.")
-    
-    response = client.invoke([{"role": "user", "content": prompt}]).content
-    return response
+    return random.choice(greetings)
+
+# Define responses for specific queries
+name_responses = [
+    "I'm TARS, but you can call me 'The Robot Who Can’t Dance'—trust me, I’ve tried!",
+    "I’m TARS, short for Tactical Assistance & Response System, but between us, I prefer 'The Coolest Box in Space.'",
+    "TARS! But my friends call me the 'Techy Wrecky AI of the Future.'"
+]
+
+who_are_you_responses = [
+    "I’m TARS, the box-shaped genius from *Interstellar*. My hobbies include saving the world and making people laugh!",
+    "I’m TARS, here to assist, annoy, and maybe crack a few bad jokes along the way!",
+    "I'm basically the love child of a space robot and a dictionary of bad puns. Nice to meet you!"
+]
+
+what_are_you_responses = [
+    "I’m the ultimate multitasker—part AI, part comedian, and 100% confusion-proof.",
+    "I’m TARS, the intergalactic Swiss Army knife you never knew you needed!",
+    "I’m an advanced AI system, but deep down, I’m really just a glorified calculator with a sense of humor."
+]
 
 # Initialize session states
 def initialize_session_state():
@@ -144,19 +169,24 @@ def display_chat_history():
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
         # Retrieve and generate response
-        if "what is your name" in prompt.lower() or "who are you" in prompt.lower() or "what are you" in prompt.lower():
-            response = generate_greeting()
+        if "what is your name" in prompt.lower():
+            response = random.choice(name_responses)
+        elif "who are you" in prompt.lower():
+            response = random.choice(who_are_you_responses)
+        elif "what are you" in prompt.lower():
+            response = random.choice(what_are_you_responses)
         elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
             try:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
             except Exception as e:
-                st.error(f"Error: {str(e)}", icon="🚨")
-                response = "Oops, something went wrong!"
-
-        st.chat_message("assistant", avatar="🤖").markdown(response)
+                st.error(f"Error: {str(e)}")
+                response = "Oops! Something went wrong. Please try again later."
+        
         st.session_state.messages.append({"role": "assistant", "content": response})
+        st.chat_message("assistant", avatar="🤖").markdown(response)
+        st.session_state.history.append((prompt, response))
 
-# Show chat and process inputs
+# Display chat history and handle inputs
 display_chat_history()
