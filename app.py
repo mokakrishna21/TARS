@@ -10,13 +10,26 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
 import dotenv
+import subprocess
+import sys
 
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
-# Check protobuf version
-import protobuf
-st.write(f"Current protobuf version: {protobuf.__version__}")
+# Ensure correct version of protobuf is installed
+def install_protobuf():
+    try:
+        import google.protobuf
+        import protobuf
+        print(f"Current protobuf version: {protobuf.__version__}")
+    except ImportError:
+        print("protobuf package is not installed. Installing...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "protobuf==3.20.0"])
+        import google.protobuf
+        import protobuf
+        print(f"Installed protobuf version: {protobuf.__version__}")
+
+install_protobuf()
 
 dotenv.load_dotenv()
 
