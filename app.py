@@ -48,7 +48,7 @@ def initialize_session_state():
         st.session_state.history = []
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. What can I assist you with?"})
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -151,7 +151,7 @@ def display_chat_history():
         
         # Check if the prompt is an identity question
         if check_identity_question(prompt):
-            response = "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. What can I assist you with?"
+            response = "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"
         elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
