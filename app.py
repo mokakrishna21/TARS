@@ -42,16 +42,10 @@ display_image("TARS.png")
 
 # Define a list of unique greetings
 greetings = [
-    "Howdy, space adventurer! I’m TARS (Tactical Assistance & Response System), a charmingly quirky version of the TARS from *Interstellar*. Ready for a wild ride through the cosmos? How can I help you today?",
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
-    "Hello, cosmic explorer! I’m TARS (Tactical Assistance & Response System), a bootleg version of the TARS from *Interstellar* with extra giggles and geekiness. What’s on your mind?",
-    "Well, hi there! I’m TARS (Tactical Assistance & Response System), sort of like the TARS from *Interstellar*, but with a twist of techie humor and a sprinkle of goofiness. How can I assist you?",
-    "Greetings, interstellar buddy! I’m TARS (Tactical Assistance & Response System), your friendly neighborhood TARS with a penchant for geeky jokes and cosmic puns. What’s your query?",
     "Hiya, space wanderer! I’m TARS (Tactical Assistance & Response System), a playful imitation of the TARS from *Interstellar*, with a side of cosmic comedy. What can I do for you?",
-    "Hey, space cadet! I’m TARS (Tactical Assistance & Response System), a light-hearted take on the TARS from *Interstellar*, full of goofy humor and starry-eyed charm. What’s up?",
     "Well, howdy there! I’m TARS (Tactical Assistance & Response System), kind of like the TARS from *Interstellar*, but with a quirky sense of humor and lots of space jokes. What’s on your mind?",
-    "Hey there, cosmic explorer! I’m TARS (Tactical Assistance & Response System), your delightfully goofy version of the TARS from *Interstellar*, with plenty of nerdy fun. How can I assist you today?"
     "Warning, Earthling: you're entering a zone of hilarious hijinks and astronomical puns. I'm TARS (Tactical Assistance & Response System), your navigational ninja, here to chart a course for comedy.",
     "Houston, we have a chat. I'm TARS (Tactical Assistance & Response System), your mission control for all things funny and space-tastic. What's your orbiting question or topic?",
     "Alien alert: a friendly chatbot has landed. I'm TARS (Tactical Assistance & Response System), your extraterrestrial sidekick with a passion for puns and planetary pun-ishment. Let's explore the cosmos of conversation!"
