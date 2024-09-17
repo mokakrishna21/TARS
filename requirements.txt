@@ -4,17 +4,17 @@ python-dotenv==1.0.0
 protobuf==3.20.0
 
 # LangChain and Related Libraries
-langchain==0.0.1
-langchain-community==0.0.1
-langchain-core==0.0.1
-langchain-groq==0.0.1
-langchain-huggingface==0.0.1
-langchain-chroma==0.0.1
-langchain-openai==0.0.1
-langchain-experimental==0.0.1
+langchain==0.0.5
+langchain-community==0.0.5
+langchain-core==0.0.5
+langchain-groq==0.0.5
+langchain-huggingface==0.0.5
+langchain-chroma==0.0.5
+langchain-openai==0.0.5
+langchain-experimental==0.0.5
 
 # Chroma and Embeddings
-chromadb==0.0.1
+chromadb==0.2.0
 sentence-transformers==2.2.2
 transformers==4.24.0
 
