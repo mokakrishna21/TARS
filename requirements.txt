@@ -11,7 +11,7 @@ sentence-transformers
 python-dotenv
 streamlit
 ipykernel
-chromadb==0.3.29
+chromadb
 streamlit_chat
 pypdf
 PyPDF2
