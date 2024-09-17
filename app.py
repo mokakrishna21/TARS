@@ -11,6 +11,9 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2t
 from langchain_groq import ChatGroq
 import dotenv
 
+# Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 dotenv.load_dotenv()
 
 # Initialize Groq API Client
