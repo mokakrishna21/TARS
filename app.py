@@ -2,8 +2,10 @@ import os
 import sys
 import tempfile
 import pandas as pd
+import matplotlib.pyplot as plt
 import streamlit as st
 from io import StringIO
+from dotenv import load_dotenv
 from streamlit_chat import message
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -13,8 +15,6 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
 from fbprophet import Prophet
-import matplotlib.pyplot as plt
-import dotenv
 
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -23,7 +23,8 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-dotenv.load_dotenv()
+# Load environment variables
+load_dotenv()
 
 # Initialize Groq API Client
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -49,8 +50,9 @@ def initialize_session_state():
     if "history" not in st.session_state:
         st.session_state.history = []
     if "messages" not in st.session_state:
-        st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"})
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello! I'm TARS (Tactical Assistance & Response System). What can I assist you with today?"}
+        ]
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -62,7 +64,7 @@ def initialize_session_state():
 
 initialize_session_state()
 
-# File uploader for documents and CSV
+# File uploader for documents
 uploaded_files = st.sidebar.file_uploader("Upload Documents", accept_multiple_files=True, key="file_uploader")
 
 if uploaded_files:
@@ -80,11 +82,7 @@ if uploaded_files:
         elif file_extension == ".txt":
             loader = TextLoader(temp_file_path)
         elif file_extension == ".csv":
-            dataframe = pd.read_csv(temp_file_path)
-            st.session_state.dataframe = dataframe
-            st.write(dataframe)
-            os.remove(temp_file_path)
-            continue
+            st.session_state.dataframe = pd.read_csv(temp_file_path)
         else:
             st.warning(f"Unsupported file type: {file_extension}")
             continue
@@ -121,77 +119,33 @@ if uploaded_files:
         st.error(f"Error creating vector store: {e}")
         st.stop()
 
-# Function to handle forecasting with Prophet
-def forecast_with_prophet(df, periods=30):
-    if 'Date' not in df.columns or 'Value' not in df.columns:
-        return "Data must contain 'Date' and 'Value' columns."
-    
-    df['Date'] = pd.to_datetime(df['Date'])
-    df = df.rename(columns={'Date': 'ds', 'Value': 'y'})
-    
-    model = Prophet()
-    model.fit(df)
-    
-    future = model.make_future_dataframe(periods=periods)
-    forecast = model.predict(future)
-    
-    fig = model.plot(forecast)
-    st.pyplot(fig)
-    
-    return forecast
-
-# Function to handle CSV queries
-def handle_csv_query(query, dataframe):
-    query = query.lower()
-    
-    if "forecast" in query:
-        periods = int(query.split("forecast")[1].strip().split()[0])
-        forecast = forecast_with_prophet(dataframe, periods=periods)
-        if isinstance(forecast, str):
-            return forecast
-        else:
-            return "Forecasting complete. Check the plot."
-    
-    if "summary" in query:
-        return dataframe.describe().to_string()
-
-    if "head" in query:
-        return dataframe.head().to_string()
-
-    if "columns" in query:
-        return ', '.join(dataframe.columns)
-
-    if "info" in query:
-        buffer = StringIO()
-        dataframe.info(buf=buffer)
-        return buffer.getvalue()
-
-    if "plot" in query:
-        columns = query.split("plot")[1].strip().split()
-        if len(columns) != 2:
-            return "Please specify exactly two columns to plot."
-        if all(col in dataframe.columns for col in columns):
-            fig, ax = plt.subplots()
-            dataframe.plot(x=columns[0], y=columns[1], kind='scatter', ax=ax)
-            st.pyplot(fig)
-            return "Plot displayed."
-        else:
-            return "Specified columns not found in the dataframe."
-
-    return "I can only provide summary statistics, basic plots, or column-wise analysis."
-
-# Function to handle built-in queries about the bot
-def handle_builtin_query(query):
-    query = query.lower()
-    if "what is your name" in query or "who are you" in query or "what are you" in query:
-        return "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I help you?"
-    return None
-
 # Function to reset the session state
 def reset_session_state():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     initialize_session_state()
+
+# Function to perform forecasting
+def perform_forecasting(df):
+    df = df.rename(columns={df.columns[0]: 'ds', df.columns[1]: 'y'})
+    model = Prophet()
+    model.fit(df)
+    future = model.make_future_dataframe(periods=30)
+    forecast = model.predict(future)
+    fig = model.plot(forecast)
+    return fig
+
+# Function for basic data analysis
+def perform_data_analysis(df):
+    st.write("### Basic Statistics")
+    st.write(df.describe())
+
+    st.write("### Data Sample")
+    st.write(df.head())
+
+    st.write("### Data Visualization")
+    st.write("#### Line Chart")
+    st.line_chart(df)
 
 # Display chat history and handle inputs
 def display_chat_history():
@@ -208,24 +162,34 @@ def display_chat_history():
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
         
-        # Handle built-in queries
-        response = handle_builtin_query(prompt)
-        
-        if response is None:
-            # Retrieve and generate response
-            if st.session_state.chain and uploaded_files:
-                response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
-            elif st.session_state.dataframe is not None:
-                response = handle_csv_query(prompt, st.session_state.dataframe)
-            else:
-                try:
-                    response = client.invoke([{"role": "user", "content": prompt}]).content
-                except Exception as e:
-                    st.error(f"Error: {str(e)}", icon="🚨")
-                    response = "Oops, something went wrong!"
+        if "name" in prompt.lower() or "who are you" in prompt.lower() or "what are you" in prompt.lower():
+            response = "Hello! I'm TARS (Tactical Assistance & Response System). What can I assist you with today?"
+        elif st.session_state.chain and st.session_state.dataframe is not None:
+            response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
+        else:
+            try:
+                response = client.invoke([{"role": "user", "content": prompt}]).content
+            except Exception as e:
+                st.error(f"Error: {str(e)}", icon="🚨")
+                response = "Oops, something went wrong!"
 
         st.chat_message("assistant", avatar="🤖").markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
+
+        # Handle data analysis request
+        if "analyze" in prompt.lower() and st.session_state.dataframe is not None:
+            try:
+                perform_data_analysis(st.session_state.dataframe)
+            except Exception as e:
+                st.error(f"Error performing data analysis: {str(e)}")
+
+        # Handle forecasting request
+        if "forecast" in prompt.lower() and st.session_state.dataframe is not None:
+            try:
+                fig = perform_forecasting(st.session_state.dataframe)
+                st.pyplot(fig)
+            except Exception as e:
+                st.error(f"Error performing forecasting: {str(e)}")
 
 # Show chat and process inputs
 display_chat_history()
