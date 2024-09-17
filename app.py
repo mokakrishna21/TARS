@@ -46,7 +46,7 @@ def initialize_session_state():
         st.session_state.history = []
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am TARS, a bootleg version of the TARS from Interstellar. How can I assist you today?"})
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
