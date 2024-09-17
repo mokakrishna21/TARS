@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import random
 import streamlit as st
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -56,7 +57,7 @@ def initialize_session_state():
 initialize_session_state()
 
 # File uploader for documents
-uploaded_files = st.sidebar.file_uploader("Upload Documents", accept_multiple_files=True, key="file_uploader")
+uploaded_files = st.sidebar.file_uploader("Upload Documents (PDF, DOCX, DOC, TXT)", accept_multiple_files=True, key="file_uploader")
 
 if uploaded_files:
     text = []
@@ -114,6 +115,25 @@ def reset_session_state():
         del st.session_state[key]
     initialize_session_state()
 
+# Define goofy responses
+name_responses = [
+    "I'm TARS, but you can call me 'The Robot Who Can’t Dance'—trust me, I’ve tried!",
+    "I’m TARS, short for Tactical Assistance & Response System, but between us, I prefer 'The Coolest Box in Space.'",
+    "TARS! But my friends call me the 'Techy Wrecky AI of the Future.'"
+]
+
+who_are_you_responses = [
+    "I’m TARS, the box-shaped genius from *Interstellar*. My hobbies include saving the world and making people laugh!",
+    "I’m TARS, here to assist, annoy, and maybe crack a few bad jokes along the way!",
+    "I'm basically the love child of a space robot and a dictionary of bad puns. Nice to meet you!"
+]
+
+what_are_you_responses = [
+    "I’m the ultimate multitasker—part AI, part comedian, and 100% confusion-proof.",
+    "I’m TARS, the intergalactic Swiss Army knife you never knew you needed!",
+    "I’m an advanced AI system, but deep down, I’m really just a glorified calculator with a sense of humor."
+]
+
 # Display chat history and handle inputs
 def display_chat_history():
     col1, _, _ = st.columns([1, 0.1, 0.1])
@@ -131,7 +151,12 @@ def display_chat_history():
         
         # Retrieve and generate response
         if "what is your name" in prompt.lower() or "who are you" in prompt.lower() or "what are you" in prompt.lower():
-            response = "Hello! I'm TARS (Tactical Assistance & Response System) a bootleg version of the TARS from Interstellar. How can I help you?"
+            if "what is your name" in prompt.lower():
+                response = random.choice(name_responses)
+            elif "who are you" in prompt.lower():
+                response = random.choice(who_are_you_responses)
+            elif "what are you" in prompt.lower():
+                response = random.choice(what_are_you_responses)
         elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
