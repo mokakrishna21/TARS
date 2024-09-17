@@ -14,6 +14,10 @@ import dotenv
 # Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION to python as a workaround
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
+# Check protobuf version
+import protobuf
+st.write(f"Current protobuf version: {protobuf.__version__}")
+
 dotenv.load_dotenv()
 
 # Initialize Groq API Client
