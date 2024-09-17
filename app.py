@@ -30,7 +30,7 @@ client = ChatGroq(
 )
 
 # UI Configurations
-st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS with RAG")
+st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS")
 
 # Display Image
 def display_image(image_path: str):
