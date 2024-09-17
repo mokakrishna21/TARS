@@ -32,7 +32,7 @@ client = ChatGroq(
 )
 
 # UI Configurations
-st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS with RAG")
+st.set_page_config(page_icon="🌌", layout="wide", page_title="TARS")
 
 # Display Image
 def display_image(image_path: str):
@@ -48,7 +48,7 @@ def initialize_session_state():
         st.session_state.history = []
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I am TARS (Tactical Assistance and Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"})
+        st.session_state.messages.append({"role": "assistant", "content": "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"})
     if "generated" not in st.session_state:
         st.session_state.generated = ["Hello! Feel free to ask me any questions."]
     if "past" not in st.session_state:
@@ -151,7 +151,7 @@ def display_chat_history():
         
         # Check if the prompt is an identity question
         if check_identity_question(prompt):
-            response = "Hello there! I am TARS (Tactical Assistance and Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"
+            response = "Hello there! I'm TARS (Tactical Assistance & Response System), a bootleg version of the TARS from Interstellar. How can I assist you today?"
         elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
         else:
