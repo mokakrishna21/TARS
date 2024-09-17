@@ -52,6 +52,9 @@ greetings = [
     "Hey, space cadet! I’m TARS (Tactical Assistance & Response System), a light-hearted take on the TARS from *Interstellar*, full of goofy humor and starry-eyed charm. What’s up?",
     "Well, howdy there! I’m TARS (Tactical Assistance & Response System), kind of like the TARS from *Interstellar*, but with a quirky sense of humor and lots of space jokes. What’s on your mind?",
     "Hey there, cosmic explorer! I’m TARS (Tactical Assistance & Response System), your delightfully goofy version of the TARS from *Interstellar*, with plenty of nerdy fun. How can I assist you today?"
+    "Warning, Earthling: you're entering a zone of hilarious hijinks and astronomical puns. I'm TARS (Tactical Assistance & Response System), your navigational ninja, here to chart a course for comedy.",
+    "Houston, we have a chat. I'm TARS (Tactical Assistance & Response System), your mission control for all things funny and space-tastic. What's your orbiting question or topic?",
+    "Alien alert: a friendly chatbot has landed. I'm TARS (Tactical Assistance & Response System), your extraterrestrial sidekick with a passion for puns and planetary pun-ishment. Let's explore the cosmos of conversation!"
 ]
 
 # Function to generate a unique greeting
