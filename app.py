@@ -132,7 +132,7 @@ if uploaded_files:
 
     try:
         # Use in-memory Chroma database instead of persistent storage
-        vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
+        vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding, persist_directory=tempfile.gettempdir())
         st.session_state.chain = ConversationalRetrievalChain.from_llm(
             llm=client,
             chain_type="stuff",
