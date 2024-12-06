@@ -92,7 +92,7 @@ def initialize_session_state():
 initialize_session_state()
 
 # File uploader for documents
-uploaded_files = st.sidebar.file_uploader("Upload Documents (PDF, DOCX, DOC, TXT)", accept_multiple_files=True, key="file_uploader")
+uploaded_files = st.sidebar.file_uploader("Upload Documents (PDF, DOCX, DOC, TXT, JSON)", type=['pdf', 'docx', 'doc', 'txt', 'json'], accept_multiple_files=True, key="file_uploader")
 
 if uploaded_files:
     text = []
