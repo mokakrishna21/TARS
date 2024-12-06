@@ -3,6 +3,7 @@ import sys
 import tempfile
 import random
 import streamlit as st
+import json
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
