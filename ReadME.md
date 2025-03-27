@@ -1,75 +1,129 @@
-## TARS ChatBot
+# TARS ChatBot 🌌
 
-TARS is a conversational chatbot built with Streamlit and Groq, inspired by the TARS robot from *Interstellar*. This chatbot offers users a friendly and engaging experience with advanced features for document-based interactions and Retrieval-Augmented Generation (RAG).
+TARS is an advanced conversational AI assistant built with Streamlit and Groq, inspired by the iconic TARS robot from *Interstellar*. Combines cutting-edge language models with document intelligence for engaging, context-aware interactions.
 
-## Website link 🔗
-[https://tars-the-quantum-bot.streamlit.app/](https://tars-the-quantum-bot.streamlit.app/)
+**Live Demo**: [https://tars-the-quantum-bot.streamlit.app/](https://tars-the-quantum-bot.streamlit.app/)
 
-## Features
+![TARS Interface](https://via.placeholder.com/800x400.png?text=TARS+Chat+Interface+Preview)
 
-- **Interactive Chat Interface**: Engage with TARS through a user-friendly chat layout.
-- **Real-time Responses**: Utilizes GROQ API with the `llama-3.1-70b-versatile` model to fetch and display responses instantly.
-- **Document Upload and Processing**: Upload PDFs, DOCX, and TXT files to enhance the chatbot’s responses using document-based retrieval.
-- **Retrieval-Augmented Generation (RAG)**: Combines document retrieval with language generation to provide more accurate and contextually relevant answers.
-- **Customizable Model**: Currently uses the `llama-3.1-70b-versatile` model for generating responses.
-- **Reset Chat**: Option to start a new chat session.
+## Key Features 🚀
 
-## Retrieval-Augmented Generation (RAG)
+- **Voice-to-Text Input** 🎤: Speak directly to TARS with multilingual support
+- **Document Intelligence** 📚: Process PDF, DOCX, TXT files with RAG integration
+- **Multilingual Support** 🌍: 12 language options for voice input
+- **Instant Responses** ⚡: Powered by Groq's LLaMA-3-70B model
+- **Personality Modes** 🤖: Quirky interstellar-themed interactions
+- **Conversation Memory** 💾: Context-aware dialogue tracking
+- **Zero Setup Vector Store** 🧠: In-memory ChromaDB for document analysis
 
-RAG is a technique that improves conversational AI by integrating document retrieval with generative responses. Here's how it works in TARS:
+## Enhanced RAG Architecture 🔍
 
-- **Document Upload and Processing**: Users can upload documents, which are then processed and split into chunks using LangChain's document loaders and text splitters.
-- **Vector Store**: The processed document chunks are stored in an in-memory vector database (Chroma), allowing for efficient retrieval of relevant information.
-- **Conversational Retrieval Chain**: The RAG model combines the capabilities of document retrieval and generative response. When a user asks a question, TARS retrieves relevant document chunks and generates responses based on this information, enhancing the accuracy and relevance of the answers.
+```mermaid
+graph TD
+    A[User Input] --> B{Input Type}
+    B -->|Voice| C[Speech-to-Text]
+    B -->|Text| D[Direct Processing]
+    C --> D
+    D --> E[Document Retrieval]
+    E --> F[LLaMA-3-70B Generation]
+    F --> G[Contextual Response]
+```
 
-## Setup
+1. **Document Processing**:
+   - Automatic file type detection (PDF/DOCX/TXT)
+   - Chunking with overlap for context preservation
+   - Hugging Face MiniLM-L6-v2 embeddings
+   - ChromaDB vector storage
 
-### Prerequisites
+2. **Conversational Chain**:
+   - Hybrid voice/text input handling
+   - Contextual document retrieval (5 nearest neighbors)
+   - Memory-enhanced generation pipeline
 
-- Python 3.7+
-- Streamlit
-- Groq API
-- LangChain and related libraries
+## Getting Started 🛠️
+
+### Requirements
+- Python 3.10+
+- Groq API Key ([Get Here](https://console.groq.com/))
+- Modern web browser
 
 ### Installation
 
-1. **Install Required Packages**:
+```bash
+pip install -r requirements.txt
+```
 
-    ```bash
-    pip install streamlit groq langchain langchain_community
-    ```
+**requirements.txt**:
+```
+langchain
+langchain_community
+langchain_core
+langchain_groq
+sentence-transformers
+streamlit
+chromadb
+pypdf
+protobuf==3.20.0
+pysqlite3-binary==0.5.3
+python-dotenv
+streamlit-mic-recorder
+```
 
-2. **Set Up Environment Variables**:
+### Configuration
 
-    Create a `.env` file in the project directory with your Groq API key:
+1. Create `.env` file:
+```
+GROQ_API_KEY=your_api_key_here
+```
 
-    ```env
-    GROQ_API_KEY=your_groq_api_key
-    ```
+2. Launch TARS:
+```bash
+streamlit run app.py
+```
 
-### Running the Application
+## Usage Guide 📖
 
-1. **Start the Streamlit App**:
+1. **Start Chatting**:
+   - Type questions or click 🎤 to voice chat
+   - Choose from 12 languages for voice input
 
-    ```bash
-    streamlit run app.py
-    ```
+2. **Document Analysis**:
+   - Upload files via sidebar
+   - Ask questions about content
+   - Supported formats: PDF, DOCX, DOC, TXT
 
-2. **Access the App**:
+3. **Special Commands**:
+   - "What's your name?" - Personality reveal
+   - "Who are you?" - Mission statement
+   - "New Chat" button to reset context
 
-    Open a web browser and navigate to `http://localhost:8501` to interact with TARS.
+## Customization ⚙️
 
-## Customization
+1. **Model Settings**:
+```python
+# app.py Line 28
+ChatGroq(
+    model="llama-3.1-70b-versatile",  # Change model here
+    temperature=0.5,  # Adjust creativity (0-1)
+)
+```
 
-- **Change Model**: Modify the `model_option` variable in `app.py` to use different models.
-- **Update Greeting**: Edit the initial message in the `st.session_state.messages` list for a different welcome message.
+2. **UI Customization**:
+   - Modify `greetings` array for new welcome messages
+   - Adjust `language_map` for additional languages
+   - Edit response lists for personality tuning
 
-## Troubleshooting
+## Troubleshooting 🔧
 
-- Ensure the `.env` file contains the correct Groq API key.
-- Check your internet connection if you experience issues with responses.
-- Ensure your document files are in PDF, DOCX, or TXT formats.
+| Issue | Solution |
+|-------|----------|
+| Microphone Access | Allow browser permissions |
+| API Errors | Verify .env file setup |
+| Doc Processing | Check file formats/sizes |
+| Voice Input | Ensure language match |
 
-## Contact
+## Contribution 🤝
 
-For questions or suggestions, please reach out to [mokakrishna212@gmail.com](mailto:mokakrishna212@gmail.com).
+Found a bug or have suggestions?  
+📧 Contact: [mokakrishna212@gmail.com](mailto:mokakrishna212@gmail.com)
+
