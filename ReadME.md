@@ -4,7 +4,6 @@ TARS is an advanced conversational AI assistant built with Streamlit and Groq, i
 
 **Live Demo**: [https://tars-the-quantum-bot.streamlit.app/](https://tars-the-quantum-bot.streamlit.app/)
 
-![TARS Interface](https://via.placeholder.com/800x400.png?text=TARS+Chat+Interface+Preview)
 
 ## Key Features 🚀
 
