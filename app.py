@@ -42,7 +42,7 @@ def record_voice(language="en"):
     if "text_received" not in state:
         state.text_received = []
     text = speech_to_text(
-        start_prompt="🎤 Click and speak",
+        start_prompt="🎤 Click & Speak",
         stop_prompt="⏹️ Stop recording",
         language=language,
         use_container_width=True,
