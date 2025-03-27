@@ -102,7 +102,7 @@ streamlit run app.py
 ```python
 # app.py Line 28
 ChatGroq(
-    model="llama-3.1-70b-versatile",  # Change model here
+    model="llama-3.3-70b-versatile",  # Change model here
     temperature=0.5,  # Adjust creativity (0-1)
 )
 ```
