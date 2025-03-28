@@ -1,4 +1,4 @@
-# TARS ChatBot 🌌
+# 🌌 TARS ChatBot
 
 TARS is an advanced conversational AI assistant built with Streamlit and Groq, inspired by the iconic TARS robot from *Interstellar*. Combines cutting-edge language models with document intelligence for engaging, context-aware interactions.
 
