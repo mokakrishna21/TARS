@@ -170,7 +170,13 @@ with st.sidebar:
         "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
         "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
+    
+    # Voice input section
     voice_prompt = record_voice(language=language_map[lang_name])
+    
+    # Stop Speaking button positioned below voice input
+    if st.button("⏹️ Stop Speaking", key="sidebar_stop_speaking"):
+        stop_audio()
     
     if voice_prompt:
         st.session_state.voice_prompt = voice_prompt
@@ -226,12 +232,7 @@ if st.session_state.uploaded_files:
 
 # Chat Interface
 def display_chat():
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.button("New Chat", key="reset_chat", on_click=reset_chat)
-    with col2:
-        if st.button("⏹️ Stop Speaking"):
-            stop_audio()
+    st.button("New Chat", key="reset_chat", on_click=reset_chat)
     
     for message in st.session_state.messages:
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
