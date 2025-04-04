@@ -22,7 +22,7 @@ dotenv.load_dotenv()
 # Groq client setup
 groq_api_key = os.getenv("GROQ_API_KEY")
 client = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model_name="llama3-70b-8192",
     temperature=0.5,
     groq_api_key=groq_api_key
 )
@@ -49,7 +49,8 @@ def record_voice(language="en"):
         just_once=True,
         key=f"recorder_{language}"
     )
-    if text: state.text_received.append(text)
+    if text: 
+        state.text_received.append(text)
     return " ".join(state.text_received) if state.text_received else None
 
 def language_selector():
@@ -69,7 +70,7 @@ def language_selector():
     }
     return st.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Your Original Content (Preserved Exactly)
+# Personality Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -116,7 +117,7 @@ initialize_session_state()
 # Sidebar Components
 with st.sidebar:
     uploaded_files = st.file_uploader("Upload Documents", 
-                                    type=['pdf', 'docx', 'doc', 'txt', 'json'], 
+                                    type=['pdf', 'docx', 'doc', 'txt'], 
                                     accept_multiple_files=True)
     
     lang_name = language_selector()
@@ -135,12 +136,20 @@ if uploaded_files:
     for file in uploaded_files:
         file_ext = os.path.splitext(file.name)[1]
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(file.read())
+            temp_file.write(file.getbuffer())
             loader = None
-            if file_ext == ".pdf": loader = PyPDFLoader(temp_file.name)
-            elif file_ext in [".docx", ".doc"]: loader = Docx2txtLoader(temp_file.name)
-            elif file_ext == ".txt": loader = TextLoader(temp_file.name)
-            if loader: text.extend(loader.load())
+            if file_ext == ".pdf":
+                loader = PyPDFLoader(temp_file.name)
+            elif file_ext in [".docx", ".doc"]:
+                loader = Docx2txtLoader(temp_file.name)
+            elif file_ext == ".txt":
+                loader = TextLoader(temp_file.name)
+            
+            if loader:
+                try:
+                    text.extend(loader.load())
+                except Exception as e:
+                    st.error(f"Error loading {file.name}: {str(e)}")
             os.remove(temp_file.name)
     
     if text:
@@ -156,9 +165,9 @@ if uploaded_files:
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
                 memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
             )
-            st.success("Documents ready!")
+            st.success("Documents loaded successfully!")
         except Exception as e:
-            st.error(f"Document error: {e}")
+            st.error(f"Error processing documents: {str(e)}")
             st.stop()
 
 # Chat Interface
@@ -169,16 +178,17 @@ def display_chat():
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
         st.chat_message(message["role"], avatar=avatar).markdown(message["content"])
     
+    # Get prompt from either input method
     prompt = st.chat_input("What's on your mind?!")
-    if 'voice_prompt' in st.session_state:
-        prompt = st.session_state.pop("voice_prompt")
+    voice_prompt = st.session_state.pop("voice_prompt", None)
+    final_prompt = voice_prompt or prompt
 
-    if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
+    if final_prompt:
+        st.session_state.messages.append({"role": "user", "content": final_prompt})
+        st.chat_message("user", avatar="🧑🏼‍🚀").markdown(final_prompt)
         
         # Generate response
-        lower_prompt = prompt.lower()
+        lower_prompt = final_prompt.lower()
         if "what is your name" in lower_prompt:
             response = random.choice(name_responses)
         elif "who are you" in lower_prompt:
@@ -186,15 +196,15 @@ def display_chat():
         elif "what are you" in lower_prompt:
             response = random.choice(what_are_you_responses)
         elif st.session_state.chain and uploaded_files:
-            response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
+            response = st.session_state.chain({"question": final_prompt, "chat_history": st.session_state.history})["answer"]
         else:
             try:
-                response = client.invoke([{"role": "user", "content": prompt}]).content
+                response = client.invoke(final_prompt).content
             except Exception as e:
-                response = f"Oops! Error: {str(e)}"
+                response = f"Oops! Something went wrong: {str(e)}"
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.chat_message("assistant", avatar="🤖").markdown(response)
-        st.session_state.history.append((prompt, response))
+        st.session_state.history.append((final_prompt, response))
 
 display_chat()
