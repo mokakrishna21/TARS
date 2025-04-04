@@ -46,12 +46,25 @@ def autoplay_audio(text: str, lang: str):
         audio_bytes = open(temp_audio.name, "rb").read()
         b64 = base64.b64encode(audio_bytes).decode()
         md = f"""
-            <audio autoplay>
+            <audio autoplay id="tts-audio">
             <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
             </audio>
             """
         st.markdown(md, unsafe_allow_html=True)
     os.remove(temp_audio.name)
+
+def stop_audio():
+    """Inject JavaScript to stop audio playback"""
+    js_code = """
+    <script>
+    var audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(function(audio) {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    </script>
+    """
+    st.markdown(js_code, unsafe_allow_html=True)
 
 def record_voice(language="en"):
     state = st.session_state
@@ -213,7 +226,12 @@ if st.session_state.uploaded_files:
 
 # Chat Interface
 def display_chat():
-    st.button("New Chat", key="reset_chat", on_click=reset_chat)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.button("New Chat", key="reset_chat", on_click=reset_chat)
+    with col2:
+        if st.button("⏹️ Stop Speaking"):
+            stop_audio()
     
     for message in st.session_state.messages:
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
