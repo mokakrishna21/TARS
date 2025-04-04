@@ -22,7 +22,7 @@ dotenv.load_dotenv()
 # Groq client setup
 groq_api_key = os.getenv("GROQ_API_KEY")
 client = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="llama-3.3-70b",
     temperature=0.5,
     groq_api_key=groq_api_key
 )
@@ -36,40 +36,33 @@ def display_image(image_path: str):
         st.image(image_path, width=220)
 display_image("TARS.png")
 
-# Voice & Language Components
+# Voice Recording Function
 def record_voice(language="en"):
     state = st.session_state
     if "text_received" not in state:
         state.text_received = []
     text = speech_to_text(
-        start_prompt="🎤 Click & Speak",
-        stop_prompt="⏹️ Stop Recording",
+        start_prompt="🎤 Speak",
+        stop_prompt="⏹️ Stop",
         language=language,
         use_container_width=True,
         just_once=True,
         key=f"recorder_{language}"
     )
-    if text: state.text_received.append(text)
+    if text: 
+        state.text_received.append(text)
     return " ".join(state.text_received) if state.text_received else None
 
+# Language Selector
 def language_selector():
     language_map = {
-        "English": "en",
-        "Arabic": "ar",
-        "German": "de",
-        "Spanish": "es",
-        "French": "fr",
-        "Italian": "it",
-        "Japanese": "ja",
-        "Dutch": "nl",
-        "Polish": "pl",
-        "Portuguese": "pt",
-        "Russian": "ru",
-        "Chinese": "zh"
+        "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
+        "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
+        "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
     return st.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Your Original Content (Preserved Exactly)
+# Your Original Greetings & Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -103,10 +96,8 @@ def initialize_session_state():
     session_defaults = {
         "history": [],
         "messages": [{"role": "assistant", "content": random.choice(greetings)}],
-        "generated": [],
-        "past": [],
         "chain": None,
-        "voice_prompt": None
+        "last_voice": None
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
@@ -116,7 +107,7 @@ initialize_session_state()
 # Sidebar Components
 with st.sidebar:
     uploaded_files = st.file_uploader("Upload Documents", 
-                                    type=['pdf', 'docx', 'doc', 'txt', 'json'], 
+                                    type=['pdf', 'docx', 'doc', 'txt'], 
                                     accept_multiple_files=True)
     
     lang_name = language_selector()
@@ -125,9 +116,9 @@ with st.sidebar:
         "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
         "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
-    voice_prompt = record_voice(language=language_map[lang_name])
-    if voice_prompt:
-        st.session_state.voice_prompt = voice_prompt
+    current_voice = record_voice(language=language_map[lang_name])
+    if current_voice:
+        st.session_state.last_voice = current_voice
 
 # Document Processing
 if uploaded_files:
@@ -156,34 +147,31 @@ if uploaded_files:
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
                 memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
             )
-            st.success("Documents ready!")
         except Exception as e:
             st.error(f"Document error: {e}")
             st.stop()
 
-# Chat Interface
-def display_chat():
-    st.button("New Chat", key="reset_chat", on_click=lambda: st.session_state.clear())
+# Input Handling
+def handle_inputs():
+    # Process text input
+    text_prompt = st.chat_input("Type your message...")
+    if text_prompt:
+        st.session_state.messages.append({"role": "user", "content": text_prompt})
+        generate_response(text_prompt)
     
-    for message in st.session_state.messages:
-        avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
-        st.chat_message(message["role"], avatar=avatar).markdown(message["content"])
-    
-    prompt = st.chat_input("What's on your mind?!")
-    if 'voice_prompt' in st.session_state:
-        prompt = st.session_state.pop("voice_prompt")
+    # Process voice input separately
+    if 'last_voice' in st.session_state:
+        voice_prompt = st.session_state.pop('last_voice')
+        st.session_state.messages.append({"role": "user", "content": voice_prompt})
+        generate_response(voice_prompt)
 
-    if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user", avatar="🧑🏼‍🚀").markdown(prompt)
-        
-        # Generate response
-        lower_prompt = prompt.lower()
-        if "what is your name" in lower_prompt:
+def generate_response(prompt):
+    with st.spinner('TARS is thinking...'):
+        if "what is your name" in prompt.lower():
             response = random.choice(name_responses)
-        elif "who are you" in lower_prompt:
+        elif "who are you" in prompt.lower():
             response = random.choice(who_are_you_responses)
-        elif "what are you" in lower_prompt:
+        elif "what are you" in prompt.lower():
             response = random.choice(what_are_you_responses)
         elif st.session_state.chain and uploaded_files:
             response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
@@ -191,10 +179,19 @@ def display_chat():
             try:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
             except Exception as e:
-                response = f"Oops! Error: {str(e)}"
+                response = f"System error: {str(e)}"
         
         st.session_state.messages.append({"role": "assistant", "content": response})
-        st.chat_message("assistant", avatar="🤖").markdown(response)
         st.session_state.history.append((prompt, response))
+
+# Display Chat
+def display_chat():
+    st.button("New Chat", on_click=lambda: st.session_state.clear())
+    
+    for message in st.session_state.messages:
+        avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
+        st.chat_message(message["role"], avatar=avatar).markdown(message["content"])
+    
+    handle_inputs()
 
 display_chat()
