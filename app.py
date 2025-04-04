@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import random
+import chromadb
 import streamlit as st
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -36,11 +37,11 @@ def display_image(image_path: str):
         st.image(image_path, width=220)
 display_image("TARS.png")
 
-# Voice & Language Components
 def record_voice(language="en"):
     state = st.session_state
     if "text_received" not in state:
         state.text_received = []
+    
     text = speech_to_text(
         start_prompt="🎤 Click & Speak",
         stop_prompt="⏹️ Stop Recording",
@@ -49,9 +50,10 @@ def record_voice(language="en"):
         just_once=True,
         key=f"recorder_{language}"
     )
-    if text: 
-        state.text_received.append(text)
-    return " ".join(state.text_received) if state.text_received else None
+    
+    if text:
+        state.text_received = [text]
+    return state.text_received[0] if state.text_received else None
 
 def language_selector():
     language_map = {
@@ -107,7 +109,8 @@ def initialize_session_state():
         "generated": [],
         "past": [],
         "chain": None,
-        "voice_prompt": None
+        "voice_prompt": None,
+        "text_received": []
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
@@ -127,8 +130,11 @@ with st.sidebar:
         "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
     voice_prompt = record_voice(language=language_map[lang_name])
+    
     if voice_prompt:
         st.session_state.voice_prompt = voice_prompt
+        if "text_received" in st.session_state:
+            del st.session_state.text_received
 
 # Document Processing
 if uploaded_files:
@@ -159,7 +165,15 @@ if uploaded_files:
         text_chunks = text_splitter.split_documents(text)
         try:
             embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-            vector_store = Chroma.from_documents(text_chunks, embedding)
+            vector_store = Chroma.from_documents(
+                documents=text_chunks,
+                embedding=embedding,
+                client_settings=chromadb.config.Settings(
+                    chroma_db_impl="duckdb+parquet",
+                    persist_directory=None,
+                    anonymized_telemetry=False
+                )
+            )
             st.session_state.chain = ConversationalRetrievalChain.from_llm(
                 llm=client,
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
@@ -178,16 +192,17 @@ def display_chat():
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
         st.chat_message(message["role"], avatar=avatar).markdown(message["content"])
     
-    # Get prompt from either input method
     prompt = st.chat_input("What's on your mind?!")
     voice_prompt = st.session_state.pop("voice_prompt", None)
     final_prompt = voice_prompt or prompt
 
     if final_prompt:
+        if "text_received" in st.session_state:
+            del st.session_state.text_received
+            
         st.session_state.messages.append({"role": "user", "content": final_prompt})
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(final_prompt)
         
-        # Generate response
         lower_prompt = final_prompt.lower()
         if "what is your name" in lower_prompt:
             response = random.choice(name_responses)
