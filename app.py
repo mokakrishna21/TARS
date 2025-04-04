@@ -10,6 +10,7 @@ from langchain_community.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
+from langchain_core.messages import HumanMessage
 import dotenv
 from streamlit_mic_recorder import speech_to_text
 
@@ -22,7 +23,7 @@ dotenv.load_dotenv()
 # Groq client setup
 groq_api_key = os.getenv("GROQ_API_KEY")
 client = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="llama3-70b-8192",
     temperature=0.5,
     groq_api_key=groq_api_key
 )
@@ -45,7 +46,7 @@ def language_selector():
     }
     return st.sidebar.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Original Greetings and Responses
+# Personality Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -81,7 +82,8 @@ def initialize_session_state():
         "messages": [{"role": "assistant", "content": random.choice(greetings)}],
         "chain": None,
         "voice_prompt": None,
-        "text_prompt": None
+        "text_prompt": None,
+        "uploaded_files": None
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
@@ -165,10 +167,10 @@ def process_input(prompt):
                 response = random.choice(who_are_you_responses)
             elif "what are you" in lower_prompt:
                 response = random.choice(what_are_you_responses)
-            elif st.session_state.chain and uploaded_files:
+            elif st.session_state.chain and st.session_state.uploaded_files:
                 response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
             else:
-                response = client.invoke([{"role": "user", "content": prompt}]).content
+                response = client.invoke([HumanMessage(content=prompt)]).content
         except Exception as e:
             response = f"System error: {str(e)}"
         
@@ -182,13 +184,15 @@ def main():
                                             type=['pdf', 'docx', 'doc', 'txt'], 
                                             accept_multiple_files=True)
     
+    st.session_state.uploaded_files = uploaded_files
+    
     if uploaded_files:
         process_documents(uploaded_files)
     
     handle_voice_input()
     handle_text_input()
 
-    st.button("New Chat", on_click=lambda: st.session_state.clear())
+    st.sidebar.button("New Chat", on_click=lambda: st.session_state.clear())
     
     # Display messages
     for message in st.session_state.messages:
