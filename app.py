@@ -88,7 +88,7 @@ def language_selector():
     }
     return st.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Personality Responses
+# Full Personality Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -119,19 +119,19 @@ what_are_you_responses = [
 
 # Session State Management
 def initialize_session_state():
-    session_defaults = {
+    required_keys = {
         "history": [],
         "messages": [{"role": "assistant", "content": random.choice(greetings)}],
-        "generated": [],
-        "past": [],
         "chain": None,
         "voice_prompt": None,
         "text_received": [],
         "last_input_was_voice": False,
         "uploaded_files": None
     }
-    for key, value in session_defaults.items():
-        st.session_state.setdefault(key, value)
+    
+    for key, default_value in required_keys.items():
+        if key not in st.session_state:
+            st.session_state[key] = default_value.copy() if isinstance(default_value, list) else default_value
 
 initialize_session_state()
 
@@ -158,11 +158,10 @@ with st.sidebar:
 
 # Document Processing
 if st.session_state.uploaded_files:
-    # Reset conversation when new documents are uploaded
+    # Reset document-related state properly
+    st.session_state.history = []
     if "chain" in st.session_state:
         del st.session_state.chain
-    if "history" in st.session_state:
-        del st.session_state.history
     st.session_state.messages = [{"role": "assistant", "content": random.choice(greetings)}]
     
     text = []
@@ -231,7 +230,10 @@ def display_chat():
         elif "what are you" in lower_prompt:
             response = random.choice(what_are_you_responses)
         elif st.session_state.get("chain") and st.session_state.uploaded_files:
-            response = st.session_state.chain({"question": final_prompt, "chat_history": st.session_state.history})["answer"]
+            response = st.session_state.chain({
+                "question": final_prompt,
+                "chat_history": st.session_state.get("history", [])
+            })["answer"]
         else:
             try:
                 response = client.invoke(final_prompt).content
