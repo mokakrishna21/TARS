@@ -49,9 +49,9 @@ def record_voice(language="en"):
         just_once=True,
         key=f"recorder_{language}"
     )
-    if text: 
-        state.text_received.append(text)
-    return " ".join(state.text_received) if state.text_received else None
+    if text and text.strip():
+        state.text_received.append(text.strip())
+    return " ".join(state.text_received) if state.text_received else ""
 
 # Language Selector
 def language_selector():
@@ -62,7 +62,7 @@ def language_selector():
     }
     return st.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Your Original Greetings & Responses
+# Your Original Greetings & Responses (Preserved Exactly)
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -117,8 +117,8 @@ with st.sidebar:
         "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
     current_voice = record_voice(language=language_map[lang_name])
-    if current_voice:
-        st.session_state.last_voice = current_voice
+    if current_voice.strip():
+        st.session_state.last_voice = current_voice.strip()
 
 # Document Processing
 if uploaded_files:
@@ -131,7 +131,8 @@ if uploaded_files:
             if file_ext == ".pdf": loader = PyPDFLoader(temp_file.name)
             elif file_ext in [".docx", ".doc"]: loader = Docx2txtLoader(temp_file.name)
             elif file_ext == ".txt": loader = TextLoader(temp_file.name)
-            if loader: text.extend(loader.load())
+            if loader: 
+                text.extend(loader.load())
             os.remove(temp_file.name)
     
     if text:
@@ -155,31 +156,36 @@ if uploaded_files:
 def handle_inputs():
     # Process text input
     text_prompt = st.chat_input("Type your message...")
-    if text_prompt:
-        st.session_state.messages.append({"role": "user", "content": text_prompt})
-        generate_response(text_prompt)
+    if text_prompt and text_prompt.strip():
+        st.session_state.messages.append({"role": "user", "content": text_prompt.strip()})
+        generate_response(text_prompt.strip())
     
     # Process voice input separately
     if 'last_voice' in st.session_state:
         voice_prompt = st.session_state.pop('last_voice')
-        st.session_state.messages.append({"role": "user", "content": voice_prompt})
-        generate_response(voice_prompt)
+        if voice_prompt and voice_prompt.strip():
+            st.session_state.messages.append({"role": "user", "content": voice_prompt})
+            generate_response(voice_prompt)
 
 def generate_response(prompt):
+    if not prompt:
+        return
+    
     with st.spinner('TARS is thinking...'):
-        if "what is your name" in prompt.lower():
-            response = random.choice(name_responses)
-        elif "who are you" in prompt.lower():
-            response = random.choice(who_are_you_responses)
-        elif "what are you" in prompt.lower():
-            response = random.choice(what_are_you_responses)
-        elif st.session_state.chain and uploaded_files:
-            response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
-        else:
-            try:
+        try:
+            lower_prompt = prompt.lower()
+            if "what is your name" in lower_prompt:
+                response = random.choice(name_responses)
+            elif "who are you" in lower_prompt:
+                response = random.choice(who_are_you_responses)
+            elif "what are you" in lower_prompt:
+                response = random.choice(what_are_you_responses)
+            elif st.session_state.chain and uploaded_files:
+                response = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})["answer"]
+            else:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
-            except Exception as e:
-                response = f"System error: {str(e)}"
+        except Exception as e:
+            response = f"Oops! Something went wrong: {str(e)}"
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.session_state.history.append((prompt, response))
