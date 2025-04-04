@@ -12,6 +12,8 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2t
 from langchain_groq import ChatGroq
 import dotenv
 from streamlit_mic_recorder import speech_to_text
+from gtts import gTTS
+import base64
 
 # Environment setup
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -35,6 +37,21 @@ def display_image(image_path: str):
     with col2:
         st.image(image_path, width=220)
 display_image("TARS.png")
+
+def autoplay_audio(text: str, lang: str):
+    """Convert text to speech and auto-play the audio"""
+    tts = gTTS(text=text, lang=lang, slow=False)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+        tts.save(temp_audio.name)
+        audio_bytes = open(temp_audio.name, "rb").read()
+        b64 = base64.b64encode(audio_bytes).decode()
+        md = f"""
+            <audio autoplay>
+            <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+            """
+        st.markdown(md, unsafe_allow_html=True)
+    os.remove(temp_audio.name)
 
 def record_voice(language="en"):
     state = st.session_state
@@ -109,7 +126,8 @@ def initialize_session_state():
         "past": [],
         "chain": None,
         "voice_prompt": None,
-        "text_received": []
+        "text_received": [],
+        "last_input_was_voice": False
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
@@ -132,10 +150,11 @@ with st.sidebar:
     
     if voice_prompt:
         st.session_state.voice_prompt = voice_prompt
+        st.session_state.last_input_was_voice = True
         if "text_received" in st.session_state:
             del st.session_state.text_received
 
-# Document Processing with FAISS
+# Document Processing
 if uploaded_files:
     text = []
     for file in uploaded_files:
@@ -194,6 +213,7 @@ def display_chat():
         st.session_state.messages.append({"role": "user", "content": final_prompt})
         st.chat_message("user", avatar="🧑🏼‍🚀").markdown(final_prompt)
         
+        # Generate response
         lower_prompt = final_prompt.lower()
         if "what is your name" in lower_prompt:
             response = random.choice(name_responses)
@@ -209,8 +229,15 @@ def display_chat():
             except Exception as e:
                 response = f"Oops! Something went wrong: {str(e)}"
         
+        # Display response and play audio if voice input was used
+        with st.chat_message("assistant", avatar="🤖"):
+            st.markdown(response)
+            if st.session_state.last_input_was_voice:
+                lang_code = language_map[lang_name]
+                autoplay_audio(response, lang_code)
+                st.session_state.last_input_was_voice = False
+        
         st.session_state.messages.append({"role": "assistant", "content": response})
-        st.chat_message("assistant", avatar="🤖").markdown(response)
         st.session_state.history.append((final_prompt, response))
 
 display_chat()
