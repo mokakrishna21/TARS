@@ -88,7 +88,7 @@ def language_selector():
     }
     return st.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Full Personality Responses
+# Personality Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -132,6 +132,15 @@ def initialize_session_state():
     for key, default_value in required_keys.items():
         if key not in st.session_state:
             st.session_state[key] = default_value.copy() if isinstance(default_value, list) else default_value
+
+def reset_chat():
+    """Reset the chat to initial state"""
+    st.session_state.messages = [{"role": "assistant", "content": random.choice(greetings)}]
+    st.session_state.history = []
+    st.session_state.chain = None
+    st.session_state.uploaded_files = None
+    st.session_state.voice_prompt = None
+    st.session_state.last_input_was_voice = False
 
 initialize_session_state()
 
@@ -204,7 +213,7 @@ if st.session_state.uploaded_files:
 
 # Chat Interface
 def display_chat():
-    st.button("New Chat", key="reset_chat", on_click=lambda: st.session_state.clear())
+    st.button("New Chat", key="reset_chat", on_click=reset_chat)
     
     for message in st.session_state.messages:
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
