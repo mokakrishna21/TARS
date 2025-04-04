@@ -139,7 +139,8 @@ def initialize_session_state():
         "voice_prompt": None,
         "text_received": [],
         "last_input_was_voice": False,
-        "uploaded_files": None
+        "uploaded_files": None,
+        "documents_processed": False
     }
     
     for key, default_value in required_keys.items():
@@ -154,15 +155,21 @@ def reset_chat():
     st.session_state.uploaded_files = None
     st.session_state.voice_prompt = None
     st.session_state.last_input_was_voice = False
+    st.session_state.documents_processed = False
 
 initialize_session_state()
 
 # Sidebar Components
 with st.sidebar:
-    st.session_state.uploaded_files = st.file_uploader("Upload Documents", 
+    uploaded_files = st.file_uploader("Upload Documents", 
                                      type=['pdf', 'docx', 'doc', 'txt'], 
                                      accept_multiple_files=True,
                                      key="file_uploader")
+    
+    # Update uploaded_files state only when new files are added
+    if uploaded_files != st.session_state.uploaded_files:
+        st.session_state.uploaded_files = uploaded_files
+        st.session_state.documents_processed = False
     
     lang_name = language_selector()
     language_map = {
@@ -174,7 +181,7 @@ with st.sidebar:
     # Voice input section
     voice_prompt = record_voice(language=language_map[lang_name])
     
-    # Stop Speaking button with matching size
+    # Stop Speaking button
     if st.button("⏹️ Stop Speaking", 
                 key="sidebar_stop_speaking",
                 use_container_width=True):
@@ -187,7 +194,7 @@ with st.sidebar:
             del st.session_state.text_received
 
 # Document Processing
-if st.session_state.uploaded_files:
+if st.session_state.uploaded_files and not st.session_state.documents_processed:
     # Reset document-related state properly
     st.session_state.history = []
     if "chain" in st.session_state:
@@ -227,6 +234,7 @@ if st.session_state.uploaded_files:
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
                 memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
             )
+            st.session_state.documents_processed = True
             st.success("Documents loaded successfully!")
         except Exception as e:
             st.error(f"Error processing documents: {str(e)}")
