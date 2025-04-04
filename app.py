@@ -138,7 +138,7 @@ async def handle_voice_input():
         
         if st.session_state.recording:
             try:
-                voice_prompt = speech_to_text(  # Fixed parenthesis
+                voice_prompt = speech_to_text  # Fixed parenthesis
                     language=language_map[lang],
                     start_prompt="",
                     stop_prompt="",
