@@ -36,33 +36,16 @@ def display_image(image_path: str):
         st.image(image_path, width=220)
 display_image("TARS.png")
 
-# Voice Recording Function
-def record_voice(language="en"):
-    state = st.session_state
-    if "text_received" not in state:
-        state.text_received = []
-    text = speech_to_text(
-        start_prompt="🎤 Speak",
-        stop_prompt="⏹️ Stop",
-        language=language,
-        use_container_width=True,
-        just_once=True,
-        key=f"recorder_{language}"
-    )
-    if text and text.strip():
-        state.text_received.append(text.strip())
-    return " ".join(state.text_received) if state.text_received else ""
-
-# Language Selector
+# Language Support
 def language_selector():
     language_map = {
         "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
         "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
         "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
     }
-    return st.selectbox("Speech Language", options=list(language_map.keys()))
+    return st.sidebar.selectbox("Speech Language", options=list(language_map.keys()))
 
-# Your Original Greetings & Responses (Preserved Exactly)
+# Original Greetings and Responses
 greetings = [
     "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
     "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
@@ -97,47 +80,37 @@ def initialize_session_state():
         "history": [],
         "messages": [{"role": "assistant", "content": random.choice(greetings)}],
         "chain": None,
-        "last_voice": None
+        "voice_prompt": None,
+        "text_prompt": None
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
 
 initialize_session_state()
 
-# Sidebar Components
-with st.sidebar:
-    uploaded_files = st.file_uploader("Upload Documents", 
-                                    type=['pdf', 'docx', 'doc', 'txt'], 
-                                    accept_multiple_files=True)
-    
-    lang_name = language_selector()
-    language_map = {
-        "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
-        "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
-        "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
-    }
-    current_voice = record_voice(language=language_map[lang_name])
-    if current_voice.strip():
-        st.session_state.last_voice = current_voice.strip()
-
 # Document Processing
-if uploaded_files:
+def process_documents(uploaded_files):
     text = []
     for file in uploaded_files:
         file_ext = os.path.splitext(file.name)[1]
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_file.write(file.read())
             loader = None
-            if file_ext == ".pdf": loader = PyPDFLoader(temp_file.name)
-            elif file_ext in [".docx", ".doc"]: loader = Docx2txtLoader(temp_file.name)
-            elif file_ext == ".txt": loader = TextLoader(temp_file.name)
+            if file_ext == ".pdf": 
+                loader = PyPDFLoader(temp_file.name)
+            elif file_ext in [".docx", ".doc"]: 
+                loader = Docx2txtLoader(temp_file.name)
+            elif file_ext == ".txt": 
+                loader = TextLoader(temp_file.name)
             if loader: 
                 text.extend(loader.load())
             os.remove(temp_file.name)
     
     if text:
         text_splitter = CharacterTextSplitter(
-            separator="\n\n", chunk_size=1024, chunk_overlap=256
+            separator="\n\n", 
+            chunk_size=1024, 
+            chunk_overlap=256
         )
         text_chunks = text_splitter.split_documents(text)
         try:
@@ -148,28 +121,40 @@ if uploaded_files:
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
                 memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
             )
+            st.success("Documents ready for queries!")
         except Exception as e:
-            st.error(f"Document error: {e}")
+            st.error(f"Document processing error: {str(e)}")
             st.stop()
 
 # Input Handling
-def handle_inputs():
-    # Process text input
-    text_prompt = st.chat_input("Type your message...")
-    if text_prompt and text_prompt.strip():
-        st.session_state.messages.append({"role": "user", "content": text_prompt.strip()})
-        generate_response(text_prompt.strip())
-    
-    # Process voice input separately
-    if 'last_voice' in st.session_state:
-        voice_prompt = st.session_state.pop('last_voice')
+def handle_voice_input():
+    with st.sidebar:
+        lang_name = language_selector()
+        language_map = {
+            "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
+            "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
+            "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
+        }
+        voice_prompt = speech_to_text(
+            start_prompt="🎤 Speak Now",
+            stop_prompt="⏹️ Stop Recording",
+            language=language_map[lang_name],
+            use_container_width=True,
+            just_once=True,
+            key=f"voice_{random.randint(0,1000)}"
+        )
         if voice_prompt and voice_prompt.strip():
-            st.session_state.messages.append({"role": "user", "content": voice_prompt})
-            generate_response(voice_prompt)
+            st.session_state.voice_prompt = voice_prompt.strip()
 
-def generate_response(prompt):
+def handle_text_input():
+    if text_prompt := st.chat_input("Type your message..."):
+        st.session_state.text_prompt = text_prompt.strip()
+
+def process_input(prompt):
     if not prompt:
         return
+    
+    st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.spinner('TARS is thinking...'):
         try:
@@ -185,19 +170,41 @@ def generate_response(prompt):
             else:
                 response = client.invoke([{"role": "user", "content": prompt}]).content
         except Exception as e:
-            response = f"Oops! Something went wrong: {str(e)}"
+            response = f"System error: {str(e)}"
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.session_state.history.append((prompt, response))
 
-# Display Chat
-def display_chat():
+# Main Interface
+def main():
+    st.sidebar.title("Configuration")
+    uploaded_files = st.sidebar.file_uploader("Upload Documents", 
+                                            type=['pdf', 'docx', 'doc', 'txt'], 
+                                            accept_multiple_files=True)
+    
+    if uploaded_files:
+        process_documents(uploaded_files)
+    
+    handle_voice_input()
+    handle_text_input()
+
     st.button("New Chat", on_click=lambda: st.session_state.clear())
     
+    # Display messages
     for message in st.session_state.messages:
         avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
         st.chat_message(message["role"], avatar=avatar).markdown(message["content"])
     
-    handle_inputs()
+    # Process inputs
+    if st.session_state.voice_prompt:
+        prompt = st.session_state.pop('voice_prompt')
+        process_input(prompt)
+        st.rerun()
+    
+    if 'text_prompt' in st.session_state:
+        prompt = st.session_state.pop('text_prompt')
+        process_input(prompt)
+        st.rerun()
 
-display_chat()
+if __name__ == "__main__":
+    main()
