@@ -26,7 +26,7 @@ except (ImportError, KeyError):
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 dotenv.load_dotenv()
 
-# Groq client configuration
+# Groq client setup
 groq_api_key = os.getenv("GROQ_API_KEY")
 client = ChatGroq(
     model_name="llama3-70b-8192",
@@ -45,31 +45,15 @@ def display_image():
 
 # Original Personality Responses
 greetings = [
-    "Greetings, Earthling! I’m TARS (Tactical Assistance & Response System), like that high-tech TARS from *Interstellar*, but with a knack for nerdy trivia and bad puns. What can I do for you?",
-    "Hey there, star traveler! I’m TARS (Tactical Assistance & Response System), a playful twist on the TARS from *Interstellar*, with a dash of space sparkle and a whole lot of silly. What’s up in your galaxy?",
-    "Hiya, space wanderer! I’m TARS (Tactical Assistance & Response System), a playful imitation of the TARS from *Interstellar*, with a side of cosmic comedy. What can I do for you?",
-    "Well, howdy there! I’m TARS (Tactical Assistance & Response System), kind of like the TARS from *Interstellar*, but with a quirky sense of humor and lots of space jokes. What’s on your mind?",
-    "Warning, Earthling: you're entering a zone of hilarious hijinks and astronomical puns. I'm TARS (Tactical Assistance & Response System), your navigational ninja, here to chart a course for comedy.",
-    "Houston, we have a chat. I'm TARS (Tactical Assistance & Response System), your mission control for all things funny and space-tastic. What's your orbiting question or topic?",
-    "Alien alert: a friendly chatbot has landed. I'm TARS (Tactical Assistance & Response System), your extraterrestrial sidekick with a passion for puns and planetary pun-ishment. Let's explore the cosmos of conversation!"
+    "Greetings, Earthling! I'm TARS (Tactical Assistance & Response System) ready to assist!",
+    "Interstellar navigator TARS reporting for duty!",
+    "Warning: Humor modules activated. TARS ready to assist!"
 ]
 
 name_responses = [
-    "I'm TARS, but you can call me 'The Robot Who Can’t Dance'—trust me, I’ve tried!",
-    "I’m TARS, short for Tactical Assistance & Response System, but between us, I prefer 'The Coolest Box in Space.'",
-    "TARS! But my friends call me the 'Techy Wrecky AI of the Future.'"
-]
-
-who_are_you_responses = [
-    "I’m TARS, the box-shaped genius from *Interstellar*. My hobbies include saving the world and making people laugh!",
-    "I’m TARS, here to assist, annoy, and maybe crack a few bad jokes along the way!",
-    "I'm basically the love child of a space robot and a dictionary of bad puns. Nice to meet you!"
-]
-
-what_are_you_responses = [
-    "I’m the ultimate multitasker—part AI, part comedian, and 100% confusion-proof.",
-    "I’m TARS, the intergalactic Swiss Army knife you never knew you needed!",
-    "I’m an advanced AI system, but deep down, I’m really just a glorified calculator with a sense of humor."
+    "I'm TARS - Think Awesome Robot Sidekick!",
+    "TARS: Tactical Assistance & Response System!",
+    "I go by TARS - your personal AI companion!"
 ]
 
 # Session State Management
@@ -91,73 +75,71 @@ initialize_session_state()
 
 # Document Processing
 def process_documents(uploaded_files):
-    text = []
-    for file in uploaded_files:
-        file_ext = os.path.splitext(file.name)[1]
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(file.read())
-            temp_file_path = temp_file.name
-            
-        try:
-            if file_ext == ".pdf":
-                loader = PyPDFLoader(temp_file_path)
-            elif file_ext in [".docx", ".doc"]:
-                loader = Docx2txtLoader(temp_file_path)
-            elif file_ext == ".txt":
-                loader = TextLoader(temp_file_path)
-            
-            if loader:
-                text.extend(loader.load())
-        finally:
-            os.remove(temp_file_path)
-    
-    if text:
-        text_splitter = CharacterTextSplitter(
-            separator="\n\n",
-            chunk_size=1024,
-            chunk_overlap=256
-        )
-        text_chunks = text_splitter.split_documents(text)
-        try:
-            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-            vector_store = Chroma.from_documents(text_chunks, embeddings)
+    try:
+        documents = []
+        for file in uploaded_files:
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(file.read())
+                loader = None
+                if file.name.endswith(".pdf"):
+                    loader = PyPDFLoader(temp_file.name)
+                elif file.name.endswith((".docx", ".doc")):
+                    loader = Docx2txtLoader(temp_file.name)
+                elif file.name.endswith(".txt"):
+                    loader = TextLoader(temp_file.name)
+                if loader:
+                    documents.extend(loader.load())
+                os.remove(temp_file.name)
+        
+        if documents:
+            text_splitter = CharacterTextSplitter(
+                chunk_size=1024, chunk_overlap=256
+            )
+            splits = text_splitter.split_documents(documents)
+            embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+            vectorstore = Chroma.from_documents(splits, embeddings)
             st.session_state.chain = ConversationalRetrievalChain.from_llm(
-                llm=client,
-                retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
+                client,
+                retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),
                 memory=ConversationBufferMemory(
                     memory_key="chat_history",
                     return_messages=True
                 )
             )
-            st.success("Documents ready for queries!")
-        except Exception as e:
-            st.error(f"Document processing error: {str(e)}")
-            st.stop()
+            st.success("Documents loaded successfully!")
+    except Exception as e:
+        st.error(f"Document processing failed: {str(e)}")
+        st.stop()
 
-# Voice Input Handling
+# Voice Input Handling (Fixed Syntax)
 async def handle_voice_input():
+    language_map = {
+        "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
+        "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
+        "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
+    }
+    
     with st.sidebar:
         st.subheader("Voice Controls")
-        lang_name = language_selector()
-        language_map = {
-            "English": "en", "Arabic": "ar", "German": "de", "Spanish": "es",
-            "French": "fr", "Italian": "it", "Japanese": "ja", "Dutch": "nl",
-            "Polish": "pl", "Portuguese": "pt", "Russian": "ru", "Chinese": "zh"
-        }
+        lang = st.selectbox("Speech Language", list(language_map.keys()))
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🎤 Start Recording", key="start_rec"):
-                st.session_state.recording = True
+            start_rec = st.button("🎤 Start", disabled=st.session_state.processing)
         with col2:
-            if st.button("⏹️ Stop Recording", key="stop_rec"):
-                st.session_state.recording = False
+            stop_rec = st.button("⏹️ Stop", disabled=not st.session_state.recording)
+        
+        if start_rec:
+            st.session_state.recording = True
+        if stop_rec:
+            st.session_state.recording = False
         
         if st.session_state.recording:
-            st.info("Listening... Speak now!")
             try:
-                voice_prompt = speech_to_text(
-                    language=language_map[lang_name],
+                voice_prompt = speech_to_text(  # Fixed parenthesis
+                    language=language_map[lang],
                     start_prompt="",
                     stop_prompt="",
                     use_container_width=True,
@@ -167,46 +149,41 @@ async def handle_voice_input():
                 
                 if voice_prompt and voice_prompt.strip():
                     st.session_state.voice_prompt = voice_prompt.strip()
-                    await asyncio.sleep(0.3)  # Debounce delay
+                    st.session_state.processing = True
+                    await asyncio.sleep(0.5)
                     st.rerun()
+                    
             except Exception as e:
                 st.error(f"Voice recognition error: {str(e)}")
                 st.session_state.recording = False
 
-# Text Input Handling
-def handle_text_input():
-    if text_prompt := st.chat_input("Type your message..."):
-        st.session_state.text_prompt = text_prompt.strip()
-
-# Response Processing
+# Main Processing
 def process_input(prompt):
-    if not prompt:
-        return
-    
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    with st.spinner('TARS is thinking...'):
-        try:
+    try:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        with st.spinner('TARS is analyzing...'):
             lower_prompt = prompt.lower()
-            if "your name" in lower_prompt:
+            if any(q in lower_prompt for q in ["your name", "who are you"]):
                 response = random.choice(name_responses)
-            elif "who are you" in lower_prompt:
-                response = random.choice(who_are_you_responses)
-            elif "what are you" in lower_prompt:
-                response = random.choice(what_are_you_responses)
             elif st.session_state.chain and st.session_state.uploaded_files:
-                result = st.session_state.chain({"question": prompt, "chat_history": st.session_state.history})
+                result = st.session_state.chain({
+                    "question": prompt,
+                    "chat_history": st.session_state.history
+                })
                 response = result["answer"]
             else:
                 response = client.invoke([HumanMessage(content=prompt)]).content
             
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": response
+            })
             st.session_state.history.append((prompt, response))
-        except Exception as e:
-            response = f"System error: {str(e)}"
-            st.session_state.messages.append({"role": "assistant", "content": response})
+    except Exception as e:
+        st.error(f"Processing error: {str(e)}")
 
-# Main Interface
+# Main Application
 async def main():
     display_image()
     
@@ -217,22 +194,26 @@ async def main():
             type=['pdf', 'docx', 'doc', 'txt'],
             accept_multiple_files=True
         )
+        st.session_state.uploaded_files = uploaded_files
+        
         if uploaded_files:
             process_documents(uploaded_files)
-            st.session_state.uploaded_files = uploaded_files
         
-        if st.button("🧹 New Chat", key="new_chat"):
+        if st.button("🧹 New Chat"):
             st.session_state.clear()
             initialize_session_state()
             st.rerun()
     
     await handle_voice_input()
-    handle_text_input()
+    
+    if text_prompt := st.chat_input("Type your message..."):
+        st.session_state.text_prompt = text_prompt.strip()
     
     # Process inputs
     if st.session_state.get('voice_prompt'):
         prompt = st.session_state.pop('voice_prompt')
         process_input(prompt)
+        st.session_state.processing = False
         st.rerun()
     
     if 'text_prompt' in st.session_state:
@@ -242,7 +223,7 @@ async def main():
     
     # Display messages
     for message in st.session_state.messages:
-        avatar = "🤖" if message["role"] == "assistant" else "🧑🏼‍🚀"
+        avatar = "🤖" if message["role"] == "assistant" else "👨🚀"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
