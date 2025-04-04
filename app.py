@@ -127,7 +127,8 @@ def initialize_session_state():
         "chain": None,
         "voice_prompt": None,
         "text_received": [],
-        "last_input_was_voice": False
+        "last_input_was_voice": False,
+        "uploaded_files": None
     }
     for key, value in session_defaults.items():
         st.session_state.setdefault(key, value)
@@ -136,9 +137,10 @@ initialize_session_state()
 
 # Sidebar Components
 with st.sidebar:
-    uploaded_files = st.file_uploader("Upload Documents", 
-                                    type=['pdf', 'docx', 'doc', 'txt'], 
-                                    accept_multiple_files=True)
+    st.session_state.uploaded_files = st.file_uploader("Upload Documents", 
+                                     type=['pdf', 'docx', 'doc', 'txt'], 
+                                     accept_multiple_files=True,
+                                     key="file_uploader")
     
     lang_name = language_selector()
     language_map = {
@@ -155,9 +157,16 @@ with st.sidebar:
             del st.session_state.text_received
 
 # Document Processing
-if uploaded_files:
+if st.session_state.uploaded_files:
+    # Reset conversation when new documents are uploaded
+    if "chain" in st.session_state:
+        del st.session_state.chain
+    if "history" in st.session_state:
+        del st.session_state.history
+    st.session_state.messages = [{"role": "assistant", "content": random.choice(greetings)}]
+    
     text = []
-    for file in uploaded_files:
+    for file in st.session_state.uploaded_files:
         file_ext = os.path.splitext(file.name)[1]
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_file.write(file.getbuffer())
@@ -221,7 +230,7 @@ def display_chat():
             response = random.choice(who_are_you_responses)
         elif "what are you" in lower_prompt:
             response = random.choice(what_are_you_responses)
-        elif st.session_state.chain and uploaded_files:
+        elif st.session_state.get("chain") and st.session_state.uploaded_files:
             response = st.session_state.chain({"question": final_prompt, "chat_history": st.session_state.history})["answer"]
         else:
             try:
