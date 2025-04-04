@@ -2,12 +2,11 @@ import os
 import sys
 import tempfile
 import random
-import chromadb
 import streamlit as st
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_groq import ChatGroq
@@ -136,7 +135,7 @@ with st.sidebar:
         if "text_received" in st.session_state:
             del st.session_state.text_received
 
-# Document Processing
+# Document Processing with FAISS
 if uploaded_files:
     text = []
     for file in uploaded_files:
@@ -165,15 +164,7 @@ if uploaded_files:
         text_chunks = text_splitter.split_documents(text)
         try:
             embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-            vector_store = Chroma.from_documents(
-                documents=text_chunks,
-                embedding=embedding,
-                client_settings=chromadb.config.Settings(
-                    chroma_db_impl="duckdb+parquet",
-                    persist_directory=None,
-                    anonymized_telemetry=False
-                )
-            )
+            vector_store = FAISS.from_documents(text_chunks, embedding)
             st.session_state.chain = ConversationalRetrievalChain.from_llm(
                 llm=client,
                 retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
