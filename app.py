@@ -24,7 +24,7 @@ dotenv.load_dotenv()
 # Groq client setup
 groq_api_key = os.getenv("GROQ_API_KEY")
 client = ChatGroq(
-    model_name="llama3-70b-8192",
+    model_name="llama-3.3-70b-versatile",
     temperature=0.5,
     groq_api_key=groq_api_key
 )
@@ -182,7 +182,7 @@ with st.sidebar:
     voice_prompt = record_voice(language=language_map[lang_name])
     
     # Stop Speaking button
-    if st.button("⏹️ Stop Speaking", 
+    if st.button("✋ Stop Speaking", 
                 key="sidebar_stop_speaking",
                 use_container_width=True):
         stop_audio()
