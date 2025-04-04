@@ -25,3 +25,4 @@ matplotlib
 streamlit-mic-recorder
 pysqlite3-binary
 asyncio==3.4.3
+docx2tx
