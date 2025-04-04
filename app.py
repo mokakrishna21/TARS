@@ -174,8 +174,10 @@ with st.sidebar:
     # Voice input section
     voice_prompt = record_voice(language=language_map[lang_name])
     
-    # Stop Speaking button positioned below voice input
-    if st.button("⏹️ Stop Speaking", key="sidebar_stop_speaking"):
+    # Stop Speaking button with matching size
+    if st.button("⏹️ Stop Speaking", 
+                key="sidebar_stop_speaking",
+                use_container_width=True):
         stop_audio()
     
     if voice_prompt:
