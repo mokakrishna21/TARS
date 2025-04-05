@@ -20,6 +20,7 @@ TARS is a futuristic AI assistant built with **Streamlit** and **Groq**, inspire
 
 ## 🔍 Enhanced RAG Flow
 
+
 ```mermaid
 graph TD
     A[User Input] --> B{Input Type}
@@ -30,6 +31,8 @@ graph TD
     E --> F[LLaMA-3.3-70B Generation]
     F --> G[Contextual Response]
 ```
+
+
 
 ---
 
