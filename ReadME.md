@@ -24,16 +24,19 @@ TARS is a futuristic AI assistant built with **Streamlit** and **Groq**, inspire
 graph TD
     A[User Input] --> B{Input Type}
     B -->|Voice| C[Speech-to-Text]
-    B -->|Text| D[Direct Processing]
+    B -->|Text| D[Direct Text Input]
     C --> D
     D --> E[Document Retrieval]
-    E --> F[LLaMA-3.3-70B Generation]
+    E --> F[LLaMA 3.3-70B Generation]
     F --> G[Contextual Response]
-    B -->|Voice| H[Text-to-Speech]
+
+    %% Response paths based on input type
+    B -->|Voice| H[Text-to-Speech (Audio Output)]
     G --> H
     B -->|Text| I[Display Text Response]
     G --> I
 ```
+
 
 
 
