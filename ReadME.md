@@ -1,8 +1,3 @@
-Sure! Here's the **complete `README.md` file** in one easy copy-paste block:
-
----
-
-```markdown
 # 🌌 TARS ChatBot
 
 TARS is a futuristic AI assistant built with **Streamlit** and **Groq**, inspired by the witty and helpful robot from *Interstellar*. It blends conversational memory, document intelligence, voice input, and powerful LLMs for immersive, multilingual interactions.
@@ -52,7 +47,7 @@ pip install -r requirements.txt
 ```
 
 **requirements.txt:**
-```text
+```
 langchain
 langchain_community
 langchain_core
@@ -129,3 +124,5 @@ ChatGroq(
 
 Have ideas or found a bug?  
 📧 Email: [mokakrishna212@gmail.com](mailto:mokakrishna212@gmail.com)
+
+---
