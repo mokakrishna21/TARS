@@ -28,10 +28,10 @@ graph TD
     D --> E[Document Retrieval]
     E --> F[LLaMA 3.3-70B Generation]
     F --> G[Contextual Response]
-
-    G -->|Voice Input| H[Text + Audio Output (TTS)]
-    G -->|Text Input| I[Text Output Only]
+    G -->|Voice Input| H["Text + Audio Output"]
+    G -->|Text Input| I["Text Output Only"]
 ```
+
 ---
 
 ## 🛠️ Getting Started
