@@ -17,7 +17,6 @@ TARS is a futuristic AI assistant built with **Streamlit** and **Groq**, inspire
 - 🧠 **Zero Setup Vector Store**: FAISS-based document retrieval
 
 ---
-
 ## Enhanced RAG Architecture 🔍
 
 ```mermaid
@@ -30,17 +29,9 @@ graph TD
     E --> F[LLaMA 3.3-70B Generation]
     F --> G[Contextual Response]
 
-    %% Response paths based on input type
-    B -->|Voice| H[Text-to-Speech (Audio Output)]
-    G --> H
-    B -->|Text| I[Display Text Response]
-    G --> I
+    G -->|Voice Input| H[Text + Audio Output (TTS)]
+    G -->|Text Input| I[Text Output Only]
 ```
-
-
-
-
-
 ---
 
 ## 🛠️ Getting Started
