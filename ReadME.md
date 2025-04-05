@@ -29,10 +29,12 @@ graph TD
     D --> E[Document Retrieval]
     E --> F[LLaMA-3.3-70B Generation]
     F --> G[Contextual Response]
-    G --> H{Output Mode}
-    H -->|Text| I[Text Display]
-    H -->|Voice| J[Text-to-Speech]
+    B -->|Voice| H[Text-to-Speech]
+    G --> H
+    B -->|Text| I[Display Text Response]
+    G --> I
 ```
+
 
 
 
